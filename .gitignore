@@ -11,8 +11,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# ASRモデルキャッシュ（容量が大きいため）
-models/
+# ASRモデルキャッシュ（容量が大きいため。リポジトリ直下のmodels/のみを対象とし、
+# packages/core/src/models/ のようなソースコード配下のフォルダは除外しないようにする）
+/models/
 *.ct2
 .hf_cache/
 
