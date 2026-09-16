@@ -72,6 +72,14 @@ async function waitForServer(url, timeoutMs = 60000) {
 }
 
 async function main() {
+  // packages/core の dist/ はビルド成果物のため.gitignore対象であり、gitの pull/merge では
+  // 更新されない。core の src/ に変更が入った状態で dist/ が古いままだと、
+  // 「Module '"@audiotranscriptionapp/core"' has no exported member '...'」のような
+  // 型エラーで各アプリのビルドが失敗する（実際に発生した不具合の再発防止）。
+  // dev起動のたびに毎回ビルドし直すことで、常に最新のcoreを使うようにする。
+  console.log(`[dev:${appName}] core(共通ライブラリ)をビルド中...`);
+  await runToCompletion("npm", ["run", "build", "-w", "@audiotranscriptionapp/core"], { cwd: repoRoot });
+
   console.log(`[dev:${appName}] electron(main/preload)をビルド中...`);
   await runToCompletion("npx", ["tsc", "-p", "electron/tsconfig.json"], { cwd: appDir });
 
