@@ -70,6 +70,11 @@ export class FasterWhisperEngine implements ASREngine {
           // 明示的操作なしに外部通信しない方針のため、常にオフライン優先。
           // モデル未ダウンロード時のみサイドカー側が個別に取得を試みる。
           HF_HUB_OFFLINE: process.env.ASR_ALLOW_MODEL_DOWNLOAD === "1" ? "0" : "1",
+          // Windows(日本語ロケール)ではPythonのstdin/stdout既定エンコーディングが
+          // cp932になり、JSON行プロトコルでやり取りする日本語テキストが文字化けする
+          // ため、明示的にUTF-8を強制する。
+          PYTHONIOENCODING: "utf-8",
+          PYTHONUTF8: "1",
         },
       });
 

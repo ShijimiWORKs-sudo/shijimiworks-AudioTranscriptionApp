@@ -18,6 +18,21 @@ from .engine import FasterWhisperTranscriber
 from .protocol import TranscribeRequest, emit_error, emit_progress, emit_result
 
 
+def _force_utf8_stdio() -> None:
+    """Windows(日本語ロケール)ではPythonのstdin/stdout既定エンコーディングがcp932になり、
+    JSON行プロトコル(protocol.emit: ensure_ascii=False)でやり取りする日本語テキストが
+    文字化けする。呼び出し元(FasterWhisperEngine.ts)がPYTHONIOENCODING=utf-8を設定する
+    のが主対策だが、直接起動されるケース(手動デバッグ等)に備えてここでも明示的に
+    UTF-8を強制する。
+    """
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        encoding = getattr(stream, "encoding", None)
+        if encoding is None or encoding.lower() not in ("utf-8", "utf8"):
+            reconfigure = getattr(stream, "reconfigure", None)
+            if reconfigure is not None:
+                reconfigure(encoding="utf-8", errors="replace")
+
+
 def run(line: str) -> int:
     try:
         request = TranscribeRequest.from_json(line)
@@ -50,6 +65,7 @@ def run(line: str) -> int:
 
 
 def main() -> int:
+    _force_utf8_stdio()
     line = sys.stdin.readline()
     if not line.strip():
         emit_error("リクエストが空です")
