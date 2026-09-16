@@ -80,6 +80,19 @@ async function main() {
   console.log(`[dev:${appName}] core(共通ライブラリ)をビルド中...`);
   await runToCompletion("npm", ["run", "build", "-w", "@audiotranscriptionapp/core"], { cwd: repoRoot });
 
+  // better-sqlite3等のネイティブモジュールは、`npm install`時のシステムNode.jsのABI
+  // (NODE_MODULE_VERSION)向けにビルドされる。ElectronはNode.jsとは別のV8/Node組み込みを
+  // 使っておりABIが異なるため、そのままElectronから読み込むと
+  // 「was compiled against a different Node.js version」エラーで起動に失敗する。
+  // electron-builderの`install-app-deps`は、そのアプリの package.json の
+  // build.electronVersion に合わせてネイティブモジュールを自動リビルドしてくれる
+  // （既にビルド済みで対象ABIと一致していれば何もせず高速にスキップされる）。
+  // ネイティブモジュールに依存するアプリ(personal)でのみ実行する。
+  if (appName === "personal") {
+    console.log(`[dev:${appName}] ネイティブモジュール(better-sqlite3)をElectron向けにリビルド中...`);
+    await runToCompletion("npx", ["electron-builder", "install-app-deps"], { cwd: appDir });
+  }
+
   console.log(`[dev:${appName}] electron(main/preload)をビルド中...`);
   await runToCompletion("npx", ["tsc", "-p", "electron/tsconfig.json"], { cwd: appDir });
 
