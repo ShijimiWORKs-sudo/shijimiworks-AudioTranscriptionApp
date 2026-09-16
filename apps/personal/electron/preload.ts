@@ -1,7 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "../shared/ipc.js";
 import type {
+  CheckModelAvailableRequest,
+  CheckModelAvailableResponse,
   DeleteSegmentRequest,
+  DownloadModelRequest,
+  DownloadModelResponse,
   EditResponse,
   ExportFileRequest,
   ExportFileResponse,
@@ -10,6 +14,7 @@ import type {
   ImportTemplateResponse,
   JobSearchFilterDTO,
   ListTemplatesResponse,
+  ModelDownloadProgress,
   RenameSpeakerRequest,
   RunBackupResponse,
   SearchJobsResponse,
@@ -44,6 +49,20 @@ const electronAPI = {
 
   cancelTranscription: (requestId: string): Promise<{ ok: boolean }> =>
     ipcRenderer.invoke(IPC_CHANNELS.cancelTranscription, requestId),
+
+  checkModelAvailable: (request: CheckModelAvailableRequest): Promise<CheckModelAvailableResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.checkModelAvailable, request),
+
+  downloadModel: (
+    request: DownloadModelRequest,
+    onProgress: (progress: ModelDownloadProgress) => void
+  ): Promise<DownloadModelResponse> => {
+    const listener = (_event: unknown, progress: ModelDownloadProgress) => onProgress(progress);
+    ipcRenderer.on(IPC_CHANNELS.modelDownloadProgress, listener);
+    return ipcRenderer.invoke(IPC_CHANNELS.downloadModel, request).finally(() => {
+      ipcRenderer.removeListener(IPC_CHANNELS.modelDownloadProgress, listener);
+    });
+  },
 
   searchJobs: (filter: JobSearchFilterDTO): Promise<SearchJobsResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.searchJobs, filter),

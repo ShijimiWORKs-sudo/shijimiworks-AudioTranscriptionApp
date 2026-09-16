@@ -38,6 +38,11 @@ function installElectronAPIMock() {
     startTranscription: vi.fn(),
     cancelTranscription: vi.fn().mockResolvedValue({ ok: true }),
     saveFile: vi.fn(),
+    // 既定ではモデルはキャッシュ済み扱いにし、既存の各テストがそのまま
+    // 文字起こしフローへ進めるようにする。ダウンロード同意フロー自体は
+    // 専用のテストで cached:false を返すよう上書きする。
+    checkModelAvailable: vi.fn().mockResolvedValue({ modelId: "faster-whisper-base", cached: true }),
+    downloadModel: vi.fn(),
   };
   (window as unknown as { electronAPI: typeof api }).electronAPI = api;
   return api;
@@ -140,5 +145,51 @@ describe("App（試用版 画面遷移）", () => {
     await waitFor(() => expect(api.saveFile).toHaveBeenCalled());
     expect(api.saveFile.mock.calls[0][0].format).toBe("txt");
     await waitFor(() => expect(screen.getByTestId("status-message")).toHaveTextContent("保存しました"));
+  });
+
+  it("モデル未キャッシュ時はダウンロード同意画面を経由してから文字起こしが始まる", async () => {
+    const user = userEvent.setup();
+    api.selectAudioFile.mockResolvedValue({ canceled: false, audioFile: sampleAudioFile });
+    api.checkModelAvailable.mockResolvedValue({ modelId: "faster-whisper-base", cached: false });
+    api.downloadModel.mockImplementation(async (_req, onProgress) => {
+      onProgress({ modelId: "faster-whisper-base", percent: 50, message: "ダウンロード中です..." });
+      return { ok: true };
+    });
+    api.startTranscription.mockResolvedValue({
+      ok: true,
+      transcript: sampleTranscript,
+      formattedDocument: sampleDocument,
+    });
+
+    render(<App />);
+    await user.click(screen.getByText("音声ファイルを選択"));
+    await waitFor(() => expect(screen.getByTestId("file-info")).toBeInTheDocument());
+    await user.click(screen.getByTestId("start-button"));
+
+    await waitFor(() => expect(screen.getByTestId("model-download-screen")).toBeInTheDocument());
+    expect(screen.getByTestId("download-confirm-button")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("download-confirm-button"));
+
+    expect(api.downloadModel).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId("result-screen")).toBeInTheDocument());
+    expect(api.startTranscription).toHaveBeenCalled();
+  });
+
+  it("ダウンロード同意画面でキャンセルするとホーム画面へ戻り、ダウンロードは呼ばれない", async () => {
+    const user = userEvent.setup();
+    api.selectAudioFile.mockResolvedValue({ canceled: false, audioFile: sampleAudioFile });
+    api.checkModelAvailable.mockResolvedValue({ modelId: "faster-whisper-base", cached: false });
+
+    render(<App />);
+    await user.click(screen.getByText("音声ファイルを選択"));
+    await waitFor(() => expect(screen.getByTestId("file-info")).toBeInTheDocument());
+    await user.click(screen.getByTestId("start-button"));
+
+    await waitFor(() => expect(screen.getByTestId("model-download-screen")).toBeInTheDocument());
+    await user.click(screen.getByTestId("download-cancel-button"));
+
+    await waitFor(() => expect(screen.getByTestId("home-screen")).toBeInTheDocument());
+    expect(api.downloadModel).not.toHaveBeenCalled();
   });
 });

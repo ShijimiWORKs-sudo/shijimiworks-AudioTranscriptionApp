@@ -6,11 +6,16 @@ import {
   SUPPORTED_AUDIO_FORMATS,
   TranscriptionCanceledError,
   type ASREngine,
+  type ModelAwareASREngine,
 } from "@audiotranscriptionapp/core";
 import { describeAudioFile, UnsupportedAudioFormatError } from "./audioFileService.js";
 import { TranscriptionService } from "./transcriptionService.js";
 import { IPC_CHANNELS } from "../shared/ipc.js";
 import type {
+  CheckModelAvailableRequest,
+  CheckModelAvailableResponse,
+  DownloadModelRequest,
+  DownloadModelResponse,
   SaveFileRequest,
   SaveFileResponse,
   SelectAudioFileResponse,
@@ -47,7 +52,7 @@ function resolveSidecarPython(sidecarDir: string): string {
     : path.join(sidecarDir, ".venv", "bin", "python");
 }
 
-function createASREngine(): ASREngine {
+function createASREngine(): ASREngine & ModelAwareASREngine {
   // 音声データを外部送信しない方針のため、既定はローカルfaster-whisper。
   // テスト・UI開発時のみ PROTOTYPE_ASR_ENGINE=mock でモック応答に切り替えられる。
   if (process.env.PROTOTYPE_ASR_ENGINE === "mock") {
@@ -148,6 +153,38 @@ function registerIpcHandlers(): void {
     controller.abort();
     return { ok: true };
   });
+
+  ipcMain.handle(
+    IPC_CHANNELS.checkModelAvailable,
+    async (_event, request: CheckModelAvailableRequest): Promise<CheckModelAvailableResponse> => {
+      const modelId = request.modelId || DEFAULT_MODEL_ID;
+      try {
+        const cached = await engine.isModelCached(modelId);
+        return { modelId, cached };
+      } catch (err) {
+        // 確認自体に失敗した場合は「未キャッシュ」として扱い、ダウンロード同意フローへ倒す。
+        return { modelId, cached: false, error: (err as Error).message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.downloadModel,
+    async (event, request: DownloadModelRequest): Promise<DownloadModelResponse> => {
+      const modelId = request.modelId || DEFAULT_MODEL_ID;
+      try {
+        await engine.downloadModel(modelId, (progress) => {
+          event.sender.send(IPC_CHANNELS.modelDownloadProgress, progress);
+        });
+        return { ok: true };
+      } catch (err) {
+        if (err instanceof TranscriptionCanceledError) {
+          return { ok: false, canceled: true, error: err.message };
+        }
+        return { ok: false, error: `モデルのダウンロードに失敗しました: ${(err as Error).message}` };
+      }
+    }
+  );
 
   ipcMain.handle(IPC_CHANNELS.saveFile, async (_event, request: SaveFileRequest): Promise<SaveFileResponse> => {
     if (!mainWindow) return { canceled: true };

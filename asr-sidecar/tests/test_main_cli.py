@@ -40,6 +40,38 @@ def test_main_cli_missing_audio_path_emits_error():
     assert msg["type"] == "error"
 
 
+def test_main_cli_check_model_returns_false_when_not_cached(tmp_path):
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    env = {**os.environ, "ASR_MODELS_DIR": str(models_dir)}
+    proc = subprocess.run(
+        [sys.executable, "-m", "asr_sidecar.main", "check-model", "faster-whisper-tiny"],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(os.path.dirname(__file__)),
+        env=env,
+        timeout=30,
+    )
+    lines = [l for l in proc.stdout.strip().split("\n") if l]
+    assert len(lines) == 1, f"stderr: {proc.stderr}"
+    msg = json.loads(lines[0])
+    assert msg == {"type": "model_status", "modelId": "faster-whisper-tiny", "cached": False}
+
+
+def test_main_cli_check_model_unknown_model_emits_error(tmp_path):
+    proc = subprocess.run(
+        [sys.executable, "-m", "asr_sidecar.main", "check-model", "some-unknown-model"],
+        capture_output=True,
+        text=True,
+        cwd=os.path.dirname(os.path.dirname(__file__)),
+        timeout=30,
+    )
+    lines = [l for l in proc.stdout.strip().split("\n") if l]
+    assert len(lines) == 1
+    msg = json.loads(lines[0])
+    assert msg["type"] == "error"
+
+
 def test_main_cli_end_to_end_on_silent_audio(tmp_path, silent_wav):
     models_dir = tmp_path / "models"
     models_dir.mkdir()

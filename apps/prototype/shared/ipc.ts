@@ -1,4 +1,12 @@
-import type { AudioFile, ExportFormat, FormattedDocument, Transcript, TranscriptionProgress, TranscriptionPurpose } from "@audiotranscriptionapp/core";
+import type {
+  AudioFile,
+  ExportFormat,
+  FormattedDocument,
+  ModelDownloadProgress,
+  Transcript,
+  TranscriptionProgress,
+  TranscriptionPurpose,
+} from "@audiotranscriptionapp/core";
 
 export const IPC_CHANNELS = {
   selectAudioFile: "audio:select",
@@ -6,6 +14,9 @@ export const IPC_CHANNELS = {
   transcriptionProgress: "transcription:progress",
   cancelTranscription: "transcription:cancel",
   saveFile: "file:save",
+  checkModelAvailable: "model:check",
+  downloadModel: "model:download",
+  modelDownloadProgress: "model:download:progress",
 } as const;
 
 export interface SelectAudioFileResponse {
@@ -41,4 +52,24 @@ export interface SaveFileResponse {
   error?: string;
 }
 
-export type { TranscriptionProgress };
+export interface CheckModelAvailableRequest {
+  modelId: string;
+}
+
+export interface CheckModelAvailableResponse {
+  modelId: string;
+  cached: boolean;
+  error?: string;
+}
+
+export interface DownloadModelRequest {
+  modelId: string;
+}
+
+export interface DownloadModelResponse {
+  ok: boolean;
+  canceled?: boolean;
+  error?: string;
+}
+
+export type { ModelDownloadProgress, TranscriptionProgress };

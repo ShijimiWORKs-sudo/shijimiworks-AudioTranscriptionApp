@@ -1,4 +1,9 @@
 import type {
+  CheckModelAvailableRequest,
+  CheckModelAvailableResponse,
+  DownloadModelRequest,
+  DownloadModelResponse,
+  ModelDownloadProgress,
   SaveFileRequest,
   SaveFileResponse,
   SelectAudioFileResponse,
@@ -15,6 +20,11 @@ export interface ElectronAPI {
   ): Promise<StartTranscriptionResponse>;
   cancelTranscription(requestId: string): Promise<{ ok: boolean }>;
   saveFile(request: SaveFileRequest): Promise<SaveFileResponse>;
+  checkModelAvailable(request: CheckModelAvailableRequest): Promise<CheckModelAvailableResponse>;
+  downloadModel(
+    request: DownloadModelRequest,
+    onProgress: (progress: ModelDownloadProgress) => void
+  ): Promise<DownloadModelResponse>;
 }
 
 declare global {

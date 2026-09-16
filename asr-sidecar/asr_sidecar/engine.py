@@ -44,6 +44,43 @@ def resolve_model_path(model_id: str) -> str:
     )
 
 
+def is_model_cached(model_id: str, models_dir: Optional[str] = None) -> bool:
+    """モデルがすでにローカルにキャッシュ済みか判定する（ネットワークへは一切アクセスしない）。
+
+    WhisperModel(...)が実際にロードする際と同じ解決ロジック
+    (faster_whisper.utils.download_model, local_files_only=True) を使うことで、
+    「キャッシュ済みと判定したのに実際のロード時には見つからない」という食い違いを防ぐ。
+    """
+    repo_or_path = resolve_model_path(model_id)
+    if os.path.isdir(repo_or_path):
+        return True  # ローカルパス指定は常に利用可能
+
+    # 遅延importにして、faster-whisper未インストール環境でもテスト可能にする
+    from faster_whisper.utils import download_model as hf_download_model
+
+    try:
+        hf_download_model(repo_or_path, cache_dir=models_dir, local_files_only=True)
+        return True
+    except Exception:
+        return False
+
+
+def ensure_model_downloaded(model_id: str, models_dir: Optional[str] = None) -> None:
+    """モデルがローカルに無ければHuggingFaceから取得する。
+
+    ユーザーの明示的な同意（画面上のダウンロード確認ボタン）を経て呼び出される想定。
+    呼び出し元(FasterWhisperEngine.ts の downloadModel())が HF_HUB_OFFLINE=0 を
+    このプロセス限定で明示的に設定する。
+    """
+    repo_or_path = resolve_model_path(model_id)
+    if os.path.isdir(repo_or_path):
+        return  # ローカルパス指定はダウンロード不要
+
+    from faster_whisper.utils import download_model as hf_download_model
+
+    hf_download_model(repo_or_path, cache_dir=models_dir, local_files_only=False)
+
+
 @dataclass
 class TranscriptionResult:
     segments: list[TranscriptSegmentDTO]

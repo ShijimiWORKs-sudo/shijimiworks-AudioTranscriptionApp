@@ -1,5 +1,13 @@
 import { TranscriptionCanceledError } from "../types.js";
-import type { ASREngine, ASREngineInfo, Transcript, TranscriptionOptions, TranscriptionProgress } from "../types.js";
+import type {
+  ASREngine,
+  ASREngineInfo,
+  ModelAwareASREngine,
+  ModelDownloadProgress,
+  Transcript,
+  TranscriptionOptions,
+  TranscriptionProgress,
+} from "../types.js";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -10,7 +18,7 @@ function delay(ms: number): Promise<void> {
  * 実際の音声処理は行わず、固定のTranscriptを返す。
  * Prototype版のUI実装（Phase 1）はこのエンジンで先行して開発できる。
  */
-export class MockASREngine implements ASREngine {
+export class MockASREngine implements ASREngine, ModelAwareASREngine {
   readonly info: ASREngineInfo = {
     id: "mock",
     name: "Mock ASR Engine（開発用）",
@@ -24,6 +32,19 @@ export class MockASREngine implements ASREngine {
     private readonly fixedTranscript?: Transcript,
     private readonly stepDelayMs = 300
   ) {}
+
+  /** モック実装では常に「キャッシュ済み」として扱い、ダウンロードフローをスキップさせる。 */
+  async isModelCached(_modelId: string): Promise<boolean> {
+    return true;
+  }
+
+  /** モック実装ではダウンロードは発生しない（即座に完了扱い）。 */
+  async downloadModel(
+    modelId: string,
+    onProgress?: (progress: ModelDownloadProgress) => void
+  ): Promise<void> {
+    onProgress?.({ modelId, percent: 100 });
+  }
 
   async transcribe(
     audioPath: string,

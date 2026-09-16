@@ -85,3 +85,8 @@ def emit_result(segments: list[TranscriptSegmentDTO], language: str, duration_ms
 
 def emit_error(message: str) -> None:
     emit({"type": "error", "message": message})
+
+
+def emit_model_status(model_id: str, cached: bool) -> None:
+    """check-model / download-model サブコマンドの結果を通知する。"""
+    emit({"type": "model_status", "modelId": model_id, "cached": cached})

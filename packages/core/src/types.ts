@@ -86,6 +86,27 @@ export interface ASREngine {
   ): Promise<Transcript>;
 }
 
+export interface ModelDownloadProgress {
+  modelId: string;
+  percent: number;
+  message?: string;
+}
+
+/**
+ * モデルの事前確認・ダウンロードに対応するASR Engine向けの追加インターフェース。
+ * 「明示的な同意なしに外部通信を行わない」方針(docs/architecture §5)のもと、
+ * 文字起こし開始前にUI側から isModelCached() でローカルキャッシュの有無を確認し、
+ * 無ければユーザーへ同意を求めた上で downloadModel() を呼び出すフローで使う。
+ */
+export interface ModelAwareASREngine {
+  isModelCached(modelId: string): Promise<boolean>;
+  downloadModel(
+    modelId: string,
+    onProgress?: (progress: ModelDownloadProgress) => void,
+    signal?: AbortSignal
+  ): Promise<void>;
+}
+
 /** ユーザーが処理をキャンセルしたときにASREngineが送出するエラー */
 export class TranscriptionCanceledError extends Error {
   constructor(message = "文字起こしがキャンセルされました") {

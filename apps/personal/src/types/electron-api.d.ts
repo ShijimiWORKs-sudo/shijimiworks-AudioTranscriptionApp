@@ -1,5 +1,9 @@
 import type {
+  CheckModelAvailableRequest,
+  CheckModelAvailableResponse,
   DeleteSegmentRequest,
+  DownloadModelRequest,
+  DownloadModelResponse,
   EditResponse,
   ExportFileRequest,
   ExportFileResponse,
@@ -8,6 +12,7 @@ import type {
   ImportTemplateResponse,
   JobSearchFilterDTO,
   ListTemplatesResponse,
+  ModelDownloadProgress,
   RenameSpeakerRequest,
   RunBackupResponse,
   SearchJobsResponse,
@@ -28,6 +33,11 @@ export interface ElectronAPI {
     onProgress: (progress: TranscriptionProgress) => void
   ): Promise<StartTranscriptionResponse>;
   cancelTranscription(requestId: string): Promise<{ ok: boolean }>;
+  checkModelAvailable(request: CheckModelAvailableRequest): Promise<CheckModelAvailableResponse>;
+  downloadModel(
+    request: DownloadModelRequest,
+    onProgress: (progress: ModelDownloadProgress) => void
+  ): Promise<DownloadModelResponse>;
   searchJobs(filter: JobSearchFilterDTO): Promise<SearchJobsResponse>;
   getJobDetail(jobId: string): Promise<GetJobDetailResponse>;
   renameSpeaker(request: RenameSpeakerRequest): Promise<EditResponse>;

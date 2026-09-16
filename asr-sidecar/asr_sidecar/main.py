@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import sys
 
+import os
+
 from .diarization import DiarizationUnavailableError, diarize_and_label
-from .engine import FasterWhisperTranscriber
-from .protocol import TranscribeRequest, emit_error, emit_progress, emit_result
+from .engine import FasterWhisperTranscriber, ensure_model_downloaded, is_model_cached
+from .protocol import TranscribeRequest, emit_error, emit_model_status, emit_progress, emit_result
 
 
 def _force_utf8_stdio() -> None:
@@ -64,8 +66,39 @@ def run(line: str) -> int:
         return 1
 
 
+def run_check_model(model_id: str) -> int:
+    """モデルがローカルにキャッシュ済みか確認する（ネットワークへは一切アクセスしない）。"""
+    try:
+        cached = is_model_cached(model_id, os.environ.get("ASR_MODELS_DIR"))
+        emit_model_status(model_id, cached)
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        emit_error(str(exc))
+        return 1
+
+
+def run_download_model(model_id: str) -> int:
+    """モデルをダウンロードする（ユーザーの明示的な同意後にのみ呼び出される想定）。"""
+    try:
+        emit_progress(
+            "loading_model", 5, "モデルをダウンロード中です（インターネット接続が必要です）..."
+        )
+        ensure_model_downloaded(model_id, os.environ.get("ASR_MODELS_DIR"))
+        emit_model_status(model_id, True)
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        emit_error(str(exc))
+        return 1
+
+
 def main() -> int:
     _force_utf8_stdio()
+    argv = sys.argv[1:]
+    if len(argv) >= 2 and argv[0] == "check-model":
+        return run_check_model(argv[1])
+    if len(argv) >= 2 and argv[0] == "download-model":
+        return run_download_model(argv[1])
+
     line = sys.stdin.readline()
     if not line.strip():
         emit_error("リクエストが空です")

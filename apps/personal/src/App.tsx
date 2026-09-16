@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_MODEL_ID,
+  findModelCatalogEntry,
   findSegmentAtTime,
   type AudioFile,
+  type ModelDownloadProgress,
   type TemplateDefinition,
   type TranscriptionProgress,
   type TranscriptionPurpose,
@@ -10,6 +12,7 @@ import {
 } from "@audiotranscriptionapp/core";
 import type { JobDetailDTO, JobHistoryEntryDTO } from "../shared/ipc";
 import { NewTranscriptionScreen } from "./screens/NewTranscriptionScreen";
+import { ModelDownloadScreen } from "./screens/ModelDownloadScreen";
 import { ProcessingScreen } from "./screens/ProcessingScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
 import { JobDetailScreen } from "./screens/JobDetailScreen";
@@ -17,7 +20,15 @@ import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
 type Tab = "new" | "library" | "templates" | "settings";
-type Screen = "new" | "processing" | "detail" | "library" | "templates" | "settings";
+type Screen =
+  | "new"
+  | "model_consent"
+  | "model_downloading"
+  | "processing"
+  | "detail"
+  | "library"
+  | "templates"
+  | "settings";
 
 function generateRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44,6 +55,9 @@ export function App() {
   const [progress, setProgress] = useState<TranscriptionProgress | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [canceling, setCanceling] = useState(false);
+  const [pendingModelId, setPendingModelId] = useState<string | null>(null);
+  const [modelDownloadProgress, setModelDownloadProgress] = useState<ModelDownloadProgress | null>(null);
+  const [modelDownloadError, setModelDownloadError] = useState<string | null>(null);
 
   const requestIdRef = useRef<string | null>(null);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -166,7 +180,7 @@ export function App() {
     }
   }, []);
 
-  const handleStart = useCallback(async () => {
+  const runTranscription = useCallback(async () => {
     if (!selectedAudio) return;
     setStarting(true);
     setFileError(null);
@@ -216,6 +230,58 @@ export function App() {
       requestIdRef.current = null;
     }
   }, [selectedAudio, purpose, modelId, templateId, openJobDetail]);
+
+  const handleStart = useCallback(async () => {
+    if (!selectedAudio) return;
+    setFileError(null);
+    setModelDownloadError(null);
+    setStarting(true);
+    try {
+      // 「明示的な同意なしに外部通信を行わない」方針のため、文字起こし開始前に
+      // 選択中のAIモデルがローカルにキャッシュ済みか確認する。無い場合はダウンロード同意画面へ進む。
+      const checkResult = await window.electronAPI.checkModelAvailable({ modelId });
+      if (checkResult.error) {
+        setFileError(`モデルの確認に失敗しました: ${checkResult.error}`);
+        setStarting(false);
+        return;
+      }
+      if (checkResult.cached) {
+        await runTranscription();
+        return;
+      }
+      setPendingModelId(checkResult.modelId);
+      setScreen("model_consent");
+      setStarting(false);
+    } catch (err) {
+      setFileError(`モデルの確認中に予期しないエラーが発生しました: ${(err as Error).message}`);
+      setStarting(false);
+    }
+  }, [selectedAudio, modelId, runTranscription]);
+
+  const handleConfirmDownload = useCallback(async () => {
+    setScreen("model_downloading");
+    setModelDownloadProgress(null);
+    setModelDownloadError(null);
+    try {
+      const result = await window.electronAPI.downloadModel({ modelId: pendingModelId ?? modelId }, (p) =>
+        setModelDownloadProgress(p)
+      );
+      if (!result.ok) {
+        setModelDownloadError(result.error ?? "モデルのダウンロードに失敗しました");
+        return;
+      }
+      await runTranscription();
+    } catch (err) {
+      setModelDownloadError(`モデルのダウンロード中に予期しないエラーが発生しました: ${(err as Error).message}`);
+    }
+  }, [pendingModelId, modelId, runTranscription]);
+
+  const handleCancelDownload = useCallback(() => {
+    setScreen("new");
+    setPendingModelId(null);
+    setModelDownloadProgress(null);
+    setModelDownloadError(null);
+  }, []);
 
   const handleCancel = useCallback(async () => {
     if (!requestIdRef.current) return;
@@ -358,7 +424,12 @@ export function App() {
     }
   }, []);
 
-  const activeTab: Tab = screen === "processing" ? "new" : screen === "detail" ? "library" : screen;
+  const activeTab: Tab =
+    screen === "processing" || screen === "model_consent" || screen === "model_downloading"
+      ? "new"
+      : screen === "detail"
+        ? "library"
+        : screen;
 
   return (
     <div className="app-shell">
@@ -394,6 +465,18 @@ export function App() {
           onSelectFile={handleSelectFile}
           onStart={handleStart}
           starting={starting}
+        />
+      )}
+
+      {(screen === "model_consent" || screen === "model_downloading") && (
+        <ModelDownloadScreen
+          modelLabel={findModelCatalogEntry(pendingModelId ?? modelId)?.label ?? pendingModelId ?? modelId}
+          approxSizeMb={findModelCatalogEntry(pendingModelId ?? modelId)?.approxSizeMb}
+          phase={screen === "model_consent" ? "consent" : "downloading"}
+          progress={modelDownloadProgress}
+          errorMessage={modelDownloadError}
+          onConfirm={handleConfirmDownload}
+          onCancel={handleCancelDownload}
         />
       )}
 

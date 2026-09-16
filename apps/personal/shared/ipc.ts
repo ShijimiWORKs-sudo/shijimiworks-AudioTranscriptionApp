@@ -2,6 +2,7 @@ import type {
   AudioFile,
   ExportFormat,
   FormattedDocument,
+  ModelDownloadProgress,
   SpeakerMapping,
   TemplateDefinition,
   Transcript,
@@ -15,6 +16,9 @@ export const IPC_CHANNELS = {
   startTranscription: "transcription:start",
   transcriptionProgress: "transcription:progress",
   cancelTranscription: "transcription:cancel",
+  checkModelAvailable: "model:check",
+  downloadModel: "model:download",
+  modelDownloadProgress: "model:download:progress",
   searchJobs: "library:searchJobs",
   getJobDetail: "library:getJobDetail",
   renameSpeaker: "library:renameSpeaker",
@@ -55,6 +59,28 @@ export interface StartTranscriptionResponse {
   job?: TranscriptionJob;
   transcript?: Transcript;
   formattedDocument?: FormattedDocument;
+  error?: string;
+}
+
+// ---- AIモデルのダウンロード同意 ----
+
+export interface CheckModelAvailableRequest {
+  modelId: string;
+}
+
+export interface CheckModelAvailableResponse {
+  modelId: string;
+  cached: boolean;
+  error?: string;
+}
+
+export interface DownloadModelRequest {
+  modelId: string;
+}
+
+export interface DownloadModelResponse {
+  ok: boolean;
+  canceled?: boolean;
   error?: string;
 }
 
@@ -172,4 +198,4 @@ export interface RunBackupResponse {
   error?: string;
 }
 
-export type { TranscriptionProgress };
+export type { ModelDownloadProgress, TranscriptionProgress };

@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "../shared/ipc.js";
 import type {
+  CheckModelAvailableRequest,
+  CheckModelAvailableResponse,
+  DownloadModelRequest,
+  DownloadModelResponse,
+  ModelDownloadProgress,
   SaveFileRequest,
   SaveFileResponse,
   SelectAudioFileResponse,
@@ -33,6 +38,20 @@ const electronAPI = {
 
   saveFile: (request: SaveFileRequest): Promise<SaveFileResponse> =>
     ipcRenderer.invoke(IPC_CHANNELS.saveFile, request),
+
+  checkModelAvailable: (request: CheckModelAvailableRequest): Promise<CheckModelAvailableResponse> =>
+    ipcRenderer.invoke(IPC_CHANNELS.checkModelAvailable, request),
+
+  downloadModel: (
+    request: DownloadModelRequest,
+    onProgress: (progress: ModelDownloadProgress) => void
+  ): Promise<DownloadModelResponse> => {
+    const listener = (_event: unknown, progress: ModelDownloadProgress) => onProgress(progress);
+    ipcRenderer.on(IPC_CHANNELS.modelDownloadProgress, listener);
+    return ipcRenderer.invoke(IPC_CHANNELS.downloadModel, request).finally(() => {
+      ipcRenderer.removeListener(IPC_CHANNELS.modelDownloadProgress, listener);
+    });
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

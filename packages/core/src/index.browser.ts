@@ -11,6 +11,8 @@ export type {
   Transcript,
   ASREngineInfo,
   ASREngine,
+  ModelAwareASREngine,
+  ModelDownloadProgress,
   TranscriptionProgress,
   AudioFile,
   TranscriptionJobStatus,
