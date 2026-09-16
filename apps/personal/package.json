@@ -6,7 +6,8 @@
   "description": "AudioTranscriptionApp 完成版（Personal Edition）- 個人用フル機能版",
   "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../../scripts/dev-electron.mjs personal",
+    "dev:vite-only": "vite",
     "build": "tsc -p tsconfig.json && tsc -p electron/tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
     "test": "vitest run",

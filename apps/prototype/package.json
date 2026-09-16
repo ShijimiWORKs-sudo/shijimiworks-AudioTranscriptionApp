@@ -6,7 +6,8 @@
   "author": "ShijimiWORKs",
   "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "node ../../scripts/dev-electron.mjs prototype",
+    "dev:vite-only": "vite",
     "build": "tsc -p tsconfig.json && tsc -p electron/tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
     "test": "vitest run",
