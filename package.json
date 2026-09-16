@@ -21,6 +21,7 @@
     "package:personal": "npm run package -w @audiotranscriptionapp/personal"
   },
   "devDependencies": {
+    "esbuild": "^0.21.5",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^15.15.0",

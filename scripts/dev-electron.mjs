@@ -75,6 +75,12 @@ async function main() {
   console.log(`[dev:${appName}] electron(main/preload)をビルド中...`);
   await runToCompletion("npx", ["tsc", "-p", "electron/tsconfig.json"], { cwd: appDir });
 
+  // preload.tsはElectronのサンドボックス化されたpreload環境では他ファイルへの
+  // requireを解決できないため、tscの出力を単一ファイルへバンドルし直して上書きする。
+  // 詳細はscripts/bundle-preload.mjs内のコメントを参照。
+  console.log(`[dev:${appName}] preload.jsを単一ファイルへバンドル中...`);
+  await runToCompletion("node", [path.join(repoRoot, "scripts", "bundle-preload.mjs"), appName]);
+
   console.log(`[dev:${appName}] Vite dev serverを起動中 (http://localhost:${port})...`);
   const vite = run("npx", ["vite", "--port", String(port), "--strictPort"], { cwd: appDir });
   let shuttingDown = false;
