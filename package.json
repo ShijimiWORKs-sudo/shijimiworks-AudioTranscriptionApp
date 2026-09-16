@@ -1,0 +1,33 @@
+{
+  "name": "shijimiworks-audiotranscriptionapp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MP3/WAV/M4A等をローカルAIで文字起こしする個人用アプリ（試用版/完成版モノレポ）",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test:core": "npm run test -w @audiotranscriptionapp/core",
+    "test:prototype": "npm run test -w @audiotranscriptionapp/prototype",
+    "test:personal": "npm run test -w @audiotranscriptionapp/personal",
+    "dev:prototype": "npm run dev -w @audiotranscriptionapp/prototype",
+    "dev:personal": "npm run dev -w @audiotranscriptionapp/personal",
+    "package:prototype": "npm run package -w @audiotranscriptionapp/prototype",
+    "package:personal": "npm run package -w @audiotranscriptionapp/personal"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.70.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

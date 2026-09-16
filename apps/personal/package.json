@@ -1,0 +1,79 @@
+{
+  "name": "@audiotranscriptionapp/personal",
+  "version": "0.1.0",
+  "private": true,
+  "author": "ShijimiWORKs",
+  "description": "AudioTranscriptionApp 完成版（Personal Edition）- 個人用フル機能版",
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && tsc -p electron/tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p electron/tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src electron --ext .ts,.tsx",
+    "package": "node ../../scripts/copy-sidecar.mjs personal && npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "@audiotranscriptionapp/core": "*",
+    "better-sqlite3": "^11.5.0",
+    "music-metadata": "^10.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/node": "^22.9.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  },
+  "build": {
+    "appId": "works.shijimi.audiotranscriptionapp.personal",
+    "productName": "AudioTranscriptionApp",
+    "electronVersion": "33.4.11",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "!node_modules/@audiotranscriptionapp/**",
+      {
+        "from": "../../packages/core/dist",
+        "to": "node_modules/@audiotranscriptionapp/core/dist",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../../packages/core/package.json",
+        "to": "node_modules/@audiotranscriptionapp/core/package.json"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "resources/asr-sidecar",
+        "to": "asr-sidecar",
+        "filter": ["**/*"]
+      }
+    ],
+    "asar": false,
+    "npmRebuild": true,
+    "win": {
+      "target": ["nsis"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "AudioTranscriptionApp-Setup-${version}.${ext}"
+    }
+  }
+}

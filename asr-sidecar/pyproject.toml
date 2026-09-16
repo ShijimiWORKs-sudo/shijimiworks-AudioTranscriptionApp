@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[project]
+name = "asr-sidecar"
+version = "0.1.0"
+description = "AudioTranscriptionApp ローカルASRサイドカー（faster-whisper）"
+requires-python = ">=3.10"

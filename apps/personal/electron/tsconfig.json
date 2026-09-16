@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../dist-electron",
+    "rootDir": "..",
+    "types": ["node", "better-sqlite3"]
+  },
+  "include": ["./**/*.ts", "../shared/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
+}

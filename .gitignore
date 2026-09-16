@@ -1,0 +1,31 @@
+node_modules/
+dist/
+dist-electron/
+release/
+*.log
+.DS_Store
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ASRモデルキャッシュ（容量が大きいため）
+models/
+*.ct2
+.hf_cache/
+
+# ローカル設定・履歴DB
+*.sqlite
+*.sqlite3
+.env
+.env.local
+
+# ビルド成果物
+apps/*/out/
+apps/*/build/
+
+# パッケージング直前に asr-sidecar からコピーされる同梱物（scripts/copy-sidecar.mjs が生成）
+apps/*/resources/asr-sidecar/*
+!apps/*/resources/asr-sidecar/.gitkeep
